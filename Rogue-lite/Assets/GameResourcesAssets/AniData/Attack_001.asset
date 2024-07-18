@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e292dfd7817836e4cafdea7c53c20d88, type: 3}
   m_Name: Attack_001
   m_EditorClassIdentifier: 
-  animName: 
-  mecanimName: 2H@Attack02
+  animName: Attack01
+  mecanimName: 2H@Attack01
   nextMecanimName: 
-  fxTime: 0
+  fxTime: 0.5
   layerName: 
-  waitTime: 1.5333334
+  waitTime: 1.6000001
   nextWaitTime: 0
-  fxObject: {fileID: 0}
+  fxObject: {fileID: 7228098713988563366, guid: 931e8c65e052b434c9dcd0a0f7a07a6e,
+    type: 3}

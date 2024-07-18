@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Rendering;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -50,6 +51,10 @@ public class PlayerController : MonoBehaviour
             //액션 함수들을 만든다. 
             MoveLogic(isGrounded);
             JumpLogic(isGrounded);
+            AttackLogic(isGrounded);
+            LootLogic(isGrounded);
+            OpenLogic(isGrounded);
+            DashLogic();
         }
         else
         {
@@ -129,6 +134,57 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    public void AttackLogic(bool isGrounded)
+    {
+        if(Input.GetKeyDown(KeyCode.Alpha1) && isGrounded)      //땅에 있을때 && 숫자 1키를 눌렀을 때
+        {
+            DoAction(comboSystem.PerformAction(animator));      //콤보 시스템에서 가져와서 실행
+        }
+    }
+
+    public void LootLogic(bool isGrounded)
+    {
+        if (Input.GetKeyDown(KeyCode.E) && isGrounded)      //땅에 있을때
+        {
+            DoAction("Loot");     
+        }
+    }
+
+    public void OpenLogic(bool isGrounded)
+    {
+        if (Input.GetKeyDown(KeyCode.R) && isGrounded)      //땅에 있을때
+        {
+            DoAction("Open");
+        }
+    }
+
+    void DoAction(string actionName)                        //정의한 액션을 실행한다. 
+    {
+        ActionData temp = FindActionByAnimName(actionName);
+        DoAction(temp);                                                 //하위에 선언된 액션 데이터에 인수로 ActionData를 넣어 준다. 
+    }
+    void DoAction(ActionData actionData)
+    {
+        if (actionData == null) return;
+        isAction = true;
+        currentAction = actionData;
+        actionTimer = 0.0f;
+        animator.CrossFade(actionData.MecanimName, 0);                      //AnyState 처럼 사용 가능한 CrossFade 트랜직션 없이 실행 됨
+        animator.SetFloat("moveSpeed", 0);              
+    }
+    public ActionData FindActionByAnimName(string animName)                 //선언한 actionDataList에서 이름으로 같은 액션 데이터를 리턴 한다. 
+    {
+        foreach (ActionData actionData in actionDataList)                   //actionDataList 순환한다.
+        {
+            if(actionData != null && actionData.animName == animName)       //같은 이름을 찾는다. 
+            {
+                return actionData;
+            }
+        }
+        return null;
+    }
+
+
     void UpdateAction()         
     {
         if (currentAction == null) return;                  //액션이 없다면 리턴 
@@ -141,7 +197,17 @@ public class PlayerController : MonoBehaviour
 
         if(actionTimer >= currentAction.waitTime)                           //기다리는 시간종료 후 액션을 종료 시킨다.
         {
-            EndAction();
+            if(currentAction.multyClip)                                     //여러 클립일 경우
+            {
+                if(actionTimer >= currentAction.waitTime + currentAction.nextWaitTime)      //대기시간 추가 후 종료 
+                {
+                    EndAction();
+                }
+            }
+            else
+            {
+                EndAction();
+            }           
         }
     }
 
@@ -164,5 +230,43 @@ public class PlayerController : MonoBehaviour
         }
         currentAction = null;
         currentFx = null;
+    }
+
+    public void DashLogic()                                         //업데이트에 들어가는 Dash 함수
+    {
+        if(isDashing)                                               //대시 중일 경우
+        {
+            ContinuseDash(moveDir);
+        }
+
+        if(Input.GetKeyDown(KeyCode.LeftShift) && dashCounter <= 0)     //키를 누른 순간 대시 시작
+        {
+            StartDash();
+        }
+
+        if(dashCounter > 0) 
+        {
+            dashCounter -= Time.deltaTime;
+        }
+    }
+
+    private void StartDash()                //대시 시작 함수
+    {
+        isDashing = true;
+        dashTimer = dashTime;
+        dashCounter = dashCooldown;
+        animator.SetInteger("IsDashing", 1);               //대시의 상태는 1[시작할때],2[대시중],3[대시 종료] 이 있다. 
+    }
+
+    private void ContinuseDash(Vector3 moveDirection)
+    {
+        animator.SetInteger("IsDashing", 2);
+        dashTimer -= Time.deltaTime;
+        if(dashTimer <= 0)                  //대시 종료 시점
+        {
+            isDashing = false;
+            animator.SetInteger("IsDashing", 0);
+        }
+        controller.Move(moveDirection * dashSpeed * Time.deltaTime);            //대시 중인 동안은 캐릭터 방향으로 대시 스피드만큼 더해 준다.
     }
 }
